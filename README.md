@@ -59,4 +59,13 @@ $ cat /tmp/foo | src/txl2xml.sh #0  #<- no comments when called with any param
   </and_another>
   <!-- //see examples in test_data -->
 </myroot>
+
+
+$ printf "root::\n=meta\n.name here we go\nattr val\n..\n.." | src/txl2xml.sh 
+<?xml version="1.0"?>
+<root>
+  <meta>
+    <name attr="val">here we go</name>
+  </meta>
+</root>
 ```
