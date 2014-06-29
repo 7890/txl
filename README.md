@@ -34,7 +34,9 @@ attr val
 with attr
 .and leaf
 ..
+..
 
+//end
 //see examples in test_data
 ```
 
@@ -63,7 +65,7 @@ $ cat /tmp/foo | src/txl2xml.sh #0 <- no comments when called with any param
 
 #"on-the-fly" creation
 
-$ printf "root::\n=meta\n.name here we go\nattr val\n..\n.." | src/txl2xml.sh 
+$ printf "root::\n=meta\n.name here we go\nattr val\n..\n..\.." | src/txl2xml.sh 
 <?xml version="1.0"?>
 <root>
   <meta>
@@ -94,6 +96,8 @@ attr2 $2
 =child2
 .date `date`
 ..
+..
+
 _EOF_
 
 $ test_data/d.txl a b "`uname --kernel-release`" | src/txl2xml.sh 
