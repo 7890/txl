@@ -100,7 +100,7 @@ $ test_data/d.txl a b "`uname --kernel-release`" | src/txl2xml.sh
 <?xml version="1.0"?>
 <anode>
   <child1 attr1="a" attr2="b">
-    <leaf>"3.2.0-39-lowlatency"</leaf>
+    <leaf>3.2.0-39-lowlatency</leaf>
   </child1>
   <child2>
     <date>Sun Jun 29 17:34:06 CEST 2014</date>
