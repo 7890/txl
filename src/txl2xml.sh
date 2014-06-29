@@ -2,6 +2,7 @@
 
 #//tb/140629
 #txl parser - create xml from simpler text markup
+#see https://github.com/7890/txl
 
 #this "parser" is very slow
 
@@ -17,10 +18,35 @@
 
 #reserved tag name: 'attributes__'
 
-
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-. $DIR/../lib/stack.sh
+if [ -e $DIR/../lib/stack.sh ]
+then
+	. $DIR/../lib/stack.sh
+else
+	echo "stack.sh lib not found!"
+	exit 1
+fi
+
+checkAvail()
+{
+	which "$1" >/dev/null 2>&1
+	ret=$?
+	if [ $ret -ne 0 ]
+	then
+		echo "tool \"$1\" not found. please install"
+		exit 1
+	fi
+}
+
+for tool in {xmlstarlet,sed,cut,egrep}; \
+	do checkAvail "$tool"; done
+
+ENABLE_COMMENTS="1"
+if [ $# -eq 1 ]
+then
+	ENABLE_COMMENTS="0"
+fi
 
 #$1 prev
 check_open_attrs()
@@ -43,6 +69,7 @@ check_close_attrs()
 		fi
 }
 
+#using stack.sh
 stack_new stack
 
 START=1
@@ -52,9 +79,10 @@ TYPE_PREV=0
 
 TEMP=`mktemp`
 
+#====================================
+
 while read line
 do
-
 	TYPE_PREV=$TYPE
 	TYPE=0
 
@@ -68,7 +96,6 @@ do
 		ret=$?
 		if [ $ret -eq 0 ]
 		then
-
 			TYPE=1
 			START=0
 			ROOT=`echo "$line_" | cut -d":" -f1`
@@ -78,7 +105,6 @@ do
 			exit 1
 		fi
 	fi
-
 
 	#empty line
 	test=`echo "$line_" | egrep "^$"`
@@ -111,9 +137,7 @@ do
 		#stack_print stack
 	fi
 
-
 	#leaf element:    .name (content)
-
 	test=`echo "$line_" | egrep "^\.[^.]"`
 	ret=$?
 	if [ $ret -eq 0 ]
@@ -132,7 +156,6 @@ do
 		fi
 	fi
 
-
 	#navigate one level up:    ..
 	test=`echo "$line_" | egrep "^\.\."`
 	ret=$?
@@ -148,7 +171,6 @@ do
 		echo "</$elem>"
 	fi
 
-
 	#comment:    //comment
 	test=`echo "$line_" | egrep "^//"`
 	ret=$?
@@ -157,9 +179,11 @@ do
 		TYPE=5
 		check_close_attrs $TYPE $TYPE_PREV
 
-		echo "<!-- $line_ -->"
+		if [ x"$ENABLE_COMMENTS" = "x1" ]
+		then
+			echo "<!-- $line_ -->"
+		fi
 	fi
-
 
 	#if no other type matched, it must be an attribute:    name value
 	if [ $TYPE -eq 0 ]
@@ -182,7 +206,7 @@ echo "</$ROOT>" >> "$TEMP"
 #post process: move attributes__/a to parent nodes, 
 #remove helper elements attributes__
 cat "$TEMP" | xmlstarlet tr $DIR/compact_attributes.xsl - \
-        | xmlstarlet ed -d "//attributes__" | xmlstarlet fo
+	| xmlstarlet ed -d "//attributes__" | xmlstarlet fo
 
 #clean up
 stack_destroy stack
