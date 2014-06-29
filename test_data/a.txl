@@ -1,6 +1,8 @@
 myxml::
 
 //this is a comment
+//empty lines are ignored
+//whitespace and tabs at the beginning of a line are removed
 
 =meta
 .leaf gugus hallo
@@ -11,7 +13,7 @@ c d e f g
 .hallo super
 x y
 
-=mixed
+=new
 x y
 .leaf super duper
 =nested
@@ -20,11 +22,12 @@ attr for leaf
 .second leaf
 //end nested
 ..
-=another
-.xxx yyy
-//end another
-..
-//end mixed
-..
+  //test indented (should make no difference)
+  =another
+  .xxx yyy
+  //end another
+  ..
+  //end new
+  ..
 
-//must have empty end line!
+//must have empty line at end!
