@@ -18,4 +18,6 @@ attr2 $2
 =child2
 .date `date`
 ..
+..
+
 _EOF_

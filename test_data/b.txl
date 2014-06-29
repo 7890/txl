@@ -7,5 +7,6 @@ c d&e
 ..
 .custom `date`
 x 1<2 5>6 "hi" 'some apos'
+..
 
 //end

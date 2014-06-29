@@ -29,5 +29,7 @@ attr for leaf
   ..
   //end new
   ..
+		//end myxml
+		..
 
 //must have empty line at end!
