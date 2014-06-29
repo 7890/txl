@@ -5,18 +5,24 @@
 #see https://github.com/7890/txl
 
 #this "parser" is very slow
+#namespaces aren't supported
 
 #predefined XML entities:
-#    &lt; represents "<"
-#    &gt; represents ">"
-#    &amp; represents "&"
+#    &lt; represents "<" *
+#    &gt; represents ">" *
+#    &amp; represents "&" *
 #    &apos; represents '
 #    &quot; represents "
+#*) escaped for attribute and element values
 
 #tag names cannot contain any of the characters:
 #!"#$%&'()*+,/;<=>?@[\]^`{|}~
 
 #reserved tag name: 'attributes__'
+
+#ls -1 test_data/*.txl | grep -v d.txl | while read line; \
+#do echo $line; echo "============"; cat $line | src/txl2xml.sh; done; \
+#cat test_data/d.txl 1 2 3 | src/txl2xml.sh
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -39,7 +45,7 @@ checkAvail()
 	fi
 }
 
-for tool in {xmlstarlet,sed,cut,egrep}; \
+for tool in {xmlstarlet,sed,cut,egrep,rev}; \
 	do checkAvail "$tool"; done
 
 ENABLE_COMMENTS="1"
@@ -77,7 +83,7 @@ ROOT=""
 TYPE=0
 TYPE_PREV=0
 
-TEMP=`mktemp`
+#TEMP=`mktemp`
 
 #====================================
 
@@ -98,8 +104,11 @@ do
 		then
 			TYPE=1
 			START=0
-			ROOT=`echo "$line_" | cut -d":" -f1`
+			#echo "aaa:sss::" | rev | cut -d":" -f3- | rev
+			ROOT=`echo "$line_" | rev | cut -d":" -f3- | rev`
 			echo "<$ROOT>"
+			#===
+			stack_push stack "$ROOT"
 		else
 			echo "root element not found!"
 			exit 1
@@ -196,18 +205,16 @@ do
 
 		echo "<a name=\"$attr\">$val</a>"
 	fi
-done > "$TEMP"
+done \
+	| xmlstarlet tr $DIR/compact_attributes.xsl - \
+	| xmlstarlet ed -d "//attributes__" | xmlstarlet fo
+
 #end while read line
 #make sure the input has an empty line before EOF!
 
-#close root tag
-echo "</$ROOT>" >> "$TEMP"
-
 #post process: move attributes__/a to parent nodes, 
 #remove helper elements attributes__
-cat "$TEMP" | xmlstarlet tr $DIR/compact_attributes.xsl - \
-	| xmlstarlet ed -d "//attributes__" | xmlstarlet fo
 
 #clean up
 stack_destroy stack
-rm -f "$TEMP"
+#rm -f "$TEMP"
