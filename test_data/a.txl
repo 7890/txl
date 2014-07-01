@@ -25,11 +25,9 @@ attr for leaf
   //test indented (should make no difference)
   =another
   .xxx yyy
-  //end another
-  ..
-  //end new
-  ..
-		//end myxml
+  ..//end another
+//
+  ..//end new
 		..
 
 //must have empty line at end!

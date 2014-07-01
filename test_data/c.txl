@@ -6,15 +6,19 @@ attribute please
 x y+z
 =e
 .f deep
-//end e
-..
-//end d
-..
-//end c
-..
-//end b
-..
-//end a
-..
+..//end e (optional comment) 
+..//end d (.. is the only command that allows comments not at start of line)
+..//end c
+..//end b
+//new b
+=b
+do it again
+=c
+=d
+attribute please
+x y+z
+=e
+:://close document (create all necessary closing tags)
 
-//end
+
+//(comments can start anywhere if // are the first printing chars on the line)
