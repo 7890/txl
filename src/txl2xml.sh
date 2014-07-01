@@ -22,7 +22,7 @@
 
 #ls -1 test_data/*.txl | grep -v d.txl | while read line; \
 #do echo $line; echo "============"; cat $line | src/txl2xml.sh; done; \
-#cat test_data/d.txl 1 2 3 | src/txl2xml.sh
+#test_data/d.txl 1 2 3 | src/txl2xml.sh
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -30,7 +30,9 @@ if [ -e $DIR/../lib/stack.sh ]
 then
 	. $DIR/../lib/stack.sh
 else
-	echo "stack.sh lib not found!"
+	echo "stack.sh lib not found!" >&2
+	echo "<error>stack.sh lib not found!</error>"
+
 	exit 1
 fi
 
@@ -40,7 +42,8 @@ checkAvail()
 	ret=$?
 	if [ $ret -ne 0 ]
 	then
-		echo "tool \"$1\" not found. please install"
+		echo "tool \"$1\" not found. please install" >&2
+		echo "<error>tool \"$1\" not found. please install</error>"
 		exit 1
 	fi
 }
@@ -54,10 +57,52 @@ then
 	ENABLE_COMMENTS="0"
 fi
 
+#=========================================================
+
+#using stack.sh
+stack_new EL_STACK
+
+STARTING=1
+
+#status
+S_STARTED=1
+S_EMPTY=2
+S_COMMENT=3
+S_CHILDREN=4
+S_LEAF=5
+S_NAVIG_UP=6
+S_NAVIG_ROOT=7
+S_NAVIG_CLOSE=8
+S_NAVIG_EL=9
+S_ATTRIBUTE=10
+
+#current status
+STAT=0
+#prev status
+STAT_PREV=0
+
+#root element
+ROOT_EL=""
+
+#variable containing current line, unchanged
+LINE=""
+
+#variable containing current line, processed
+LINE_=""
+
+MULTILINE=0
+MULTILINE_PREV=0
+MULTILINE_START=0
+
+#return value of last method call to do_test
+RET=0
+
+#=============================================================
+
 #$1 prev
 check_open_attrs()
 {
-		if [ $1 -ne 6 ]
+		if [ $STAT_PREV -ne $S_ATTRIBUTE ]
 		then
 			echo "<attributes__>"
 		fi
@@ -66,155 +111,394 @@ check_open_attrs()
 #$1 current $2 prev
 check_close_attrs()
 {
-		if [ $2 -eq 6 ]
+		if [ $STAT_PREV -eq $S_ATTRIBUTE ]
 		then
-			if [ $1 -ne 6 ]
+			if [ $STAT -ne $S_ATTRIBUTE ]
 			then
 				echo "</attributes__>"
 			fi
 		fi
 }
 
-#using stack.sh
-stack_new stack
+do_test()
+{
+	test=`echo "$LINE_" | egrep "$1"`
+	RET=$?
+}
 
-START=1
-ROOT=""
-TYPE=0
-TYPE_PREV=0
-
-#TEMP=`mktemp`
-
-#====================================
-
-while read line
-do
-	TYPE_PREV=$TYPE
-	TYPE=0
-
-	#remove leading whitespace, tab
-	line_=`echo "$line" | sed -e 's/^[ \t]*//'`
-
-	#root tag:   name::
-	if [ $START -eq 1 ]
+handle_empty_line()
+{
+	do_test "^$"
+	if [ $RET -eq 0 ]
 	then
-		test=`echo "$line_" | egrep "::$"`
-		ret=$?
-		if [ $ret -eq 0 ]
+		STAT=$S_EMPTY
+
+		check_close_attrs
+	fi
+}
+
+handle_comment()
+{
+	#comment:    //comment
+	do_test "^//"
+	if [ $RET -eq 0 ]
+	then
+		STAT=$S_COMMENT
+
+		check_close_attrs
+
+		if [ x"$ENABLE_COMMENTS" = "x1" ]
 		then
-			TYPE=1
-			START=0
-			#echo "aaa:sss::" | rev | cut -d":" -f3- | rev
-			ROOT=`echo "$line_" | rev | cut -d":" -f3- | rev`
-			echo "<$ROOT>"
-			#===
-			stack_push stack "$ROOT"
-		else
-			echo "root element not found!"
-			exit 1
+			#strip off //
+			# -- inside xml comment not allowed
+			comment=`echo "$LINE_" | sed 's/^\/\///g' | sed 's/--/==/g'`
+
+			echo "<!-- $comment -->"
 		fi
 	fi
+} #end handle_comment
 
-	#empty line
-	test=`echo "$line_" | egrep "^$"`
-	ret=$?
-	if [ $ret -eq 0 ]
+
+find_root()
+{
+	#root tag:   name::
+	if [ $STARTING -eq 1 ]
 	then
-		TYPE=2
-		check_close_attrs $TYPE $TYPE_PREV
+		do_test ".::$"
+		if [ $RET -eq 0 ]
+		then
+			STAT=$S_STARTED
+			STARTING=0
+
+			ROOT_EL=`echo "$LINE_" | rev | cut -d":" -f3- | rev`
+			echo "<$ROOT_EL>"
+			#===
+			stack_push EL_STACK "$ROOT_EL"
+		else
+			#allow comments before start
+			if [ $STAT -ne $S_COMMENT ]
+			then
+				#allow empty lines before start
+				if [ $STAT -ne $S_EMPTY ]
+				then
+					echo "root element not found!" >&2
+					echo "<error>root element not found!</error>"
+					exit 1
+				fi
+			fi
+		fi
 	fi
+} #end find_root
 
+
+handle_children()
+{
 	#new element with children:    =name (optional mixed content)
-	test=`echo "$line_" | egrep "^[=]"`
-	ret=$?
-	if [ $ret -eq 0 ]
+	do_test "^[=]"
+	if [ $RET -eq 0 ]
 	then
-		TYPE=3
-		check_close_attrs $TYPE $TYPE_PREV
+		STAT=$S_CHILDREN
 
-		elem=`echo "$line_" | sed -e 's/^=//' | cut -d" " -f1`
-		text=`echo "$line_" | cut -d" " -f2- | sed 's/&/\&amp;/g' | sed 's/</\&lt;/g' | sed 's/>/\&gt;/g'`
+		check_close_attrs
+
+		elem=`echo "$LINE_" | sed 's/^=//' | cut -d" " -f1`
+		text=`echo "$LINE_" | cut -d" " -f2- | sed 's/&/\&amp;/g' | sed 's/</\&lt;/g' | sed 's/>/\&gt;/g'`
 		#===
-		stack_push stack "$elem"
+		stack_push EL_STACK "$elem"
 
-		if [ x"$text" != x"$line_" ]
+		if [ x"$text" != x"$LINE_" ]
 		then
 			echo -n "<$elem>${text}"
 		else
 			echo "<$elem>"
 		fi
-		#stack_print stack
+		#stack_print EL_STACK
 	fi
+} #end handle_children
 
+
+handle_leaf()
+{
 	#leaf element:    .name (content)
-	test=`echo "$line_" | egrep "^\.[^.]"`
-	ret=$?
-	if [ $ret -eq 0 ]
+	do_test "^\.[^.\*]"
+	if [ $RET -eq 0 ]
 	then
-		TYPE=4
-		check_close_attrs $TYPE $TYPE_PREV
+		STAT=$S_LEAF
 
-		elem=`echo "$line_" | sed -e 's/\.//' | cut -d" " -f1`
-		text=`echo "$line_" | cut -d" " -f2- | sed 's/&/\&amp;/g' | sed 's/</\&lt;/g' | sed 's/>/\&gt;/g'`
+		check_close_attrs
 
-		if [ x"$text" != x"$line_" ]
+		elem=`echo "$LINE_" | sed 's/\.//' | cut -d" " -f1`
+		text=`echo "$LINE_" | cut -d" " -f2- | sed 's/&/\&amp;/g' | sed 's/</\&lt;/g' | sed 's/>/\&gt;/g'`
+
+		if [ x"$text" != x"$LINE_" ]
 		then
-			echo "<$elem>${text}</$elem>"
+
+			if [ "$MULTILINE_START" -ne 1 ]
+			then
+				if [ "$MULTILINE" -ne 1 ]
+				then
+					echo "<$elem>${text}</$elem>"
+				fi
+			else
+				#===
+				stack_push EL_STACK "$elem"
+
+				echo "<$elem>${text}"
+			fi
+
 		else
 			echo "<$elem></$elem>"
 		fi
 	fi
+} #end handle_leaf
 
+
+handle_nav_up()
+{
 	#navigate one level up:    ..
-	test=`echo "$line_" | egrep "^\.\."`
-	ret=$?
-	if [ $ret -eq 0 ]
+	do_test "^\.\."
+	if [ $RET -eq 0 ]
 	then
-		TYPE=5
-		check_close_attrs $TYPE $TYPE_PREV
+		STAT=$S_NAVIG_UP
+
+		check_close_attrs
 
 		#===
-		stack_pop stack elem
+		stack_pop EL_STACK elem
 
 		#close element
 		echo "</$elem>"
 	fi
+} #end handle_nav_up
 
-	#comment:    //comment
-	test=`echo "$line_" | egrep "^//"`
+
+
+
+
+
+
+
+
+
+handle_nav_root()
+{
+	#navigate up to root:    .*
+	do_test "^\.\*"
+	if [ $RET -eq 0 ]
+	then
+		STAT=51
+		check_close_attrs
+
+		#===
+		stack_size EL_STACK left_on_stack
+
+		while [ $left_on_stack -gt 1 ]
+		do
+			stack_pop EL_STACK elem
+			#close element
+			echo "</$elem>"
+			stack_size EL_STACK left_on_stack
+		done
+	fi
+} #end handle_nav_root
+
+
+handle_nav_close()
+{
+	#navigate all up (close document with </$ROOT_EL>):    ::
+	do_test "^::"
+	if [ $RET -eq 0 ]
+	then
+		STAT=51
+		check_close_attrs
+
+		#===
+		stack_size EL_STACK left_on_stack
+
+		while [ $left_on_stack -gt 0 ]
+		do
+			stack_pop EL_STACK elem
+			#close element
+			echo "</$elem>"
+			stack_size EL_STACK left_on_stack
+		done
+		#if nothing more on stack, no need to continue
+		#=======
+		exit
+	fi
+} #end handle_nav_close
+
+
+handle_attribute()
+{
+	#if no other type matched, it must be an attribute:    name value
+	if [ $STAT -eq 0 ]
+	then
+		if [ $MULTILINE -eq 0 ]
+		then
+			STAT=$S_ATTRIBUTE
+
+			check_open_attrs
+
+			attr=`echo "$LINE_" | cut -d" " -f1`
+			val=`echo "$LINE_" | cut -d" " -f2- | sed 's/&/\&amp;/g' | sed 's/</\&lt;/g' | sed 's/>/\&gt;/g'`
+
+			#if empty value 
+			if [ x"$LINE_" = x"$attr" ]
+			then
+				val=""
+			fi	
+
+			echo "<a name=\"$attr\">$val</a>"
+		fi
+	fi
+} #end handle_attribute
+
+
+handle_closing_tag_same_line()
+{
+
+	#end tag on the same line
+	test=`echo "$LINE_" | egrep '[\][\][.]$'`
 	ret=$?
 	if [ $ret -eq 0 ]
 	then
-		TYPE=5
-		check_close_attrs $TYPE $TYPE_PREV
+		MULTILINE=0
+		#===
 
-		if [ x"$ENABLE_COMMENTS" = "x1" ]
-		then
-			echo "<!-- $line_ -->"
-		fi
+		#cut trailing \\.
+		LINE_=`echo "$LINE_" | rev | cut -b 4- | rev`
+
+		stack_pop EL_STACK elem
+		echo "$LINE_""</$elem>"
+	else
+		echo "$LINE_"
 	fi
+} #end handle_closing_tag_same_line
 
-	#if no other type matched, it must be an attribute:    name value
-	if [ $TYPE -eq 0 ]
+handle_multiline_start()
+{
+	#multiline start:    (any command with text) \\
+	#                    | next line
+	test=`echo "$LINE_" | egrep '[\][\]$'`
+	ret=$?
+	if [ $ret -eq 0 ]
 	then
-		TYPE=6
-		check_open_attrs $TYPE_PREV
+		STAT=21
 
-		attr=`echo "$line_" | cut -d" " -f1`
-		val=`echo "$line_" | cut -d" " -f2- | sed 's/&/\&amp;/g' | sed 's/</\&lt;/g' | sed 's/>/\&gt;/g'`
-
-		echo "<a name=\"$attr\">$val</a>"
+		MULTILINE_START=1
+#		check_close_attrs
+		#remove trailing \ on first multitext line
+		LINE_=`echo "$LINE_" | rev | cut -b 3- | rev`
+	else
+		MULTILINE_START=0
 	fi
-done \
-	| xmlstarlet tr $DIR/compact_attributes.xsl - \
-	| xmlstarlet ed -d "//attributes__" | xmlstarlet fo
+}
 
-#end while read line
+handle_multiline_text()
+{
+
+	handle_multiline_start
+
+	#multiline text:    |foo bar
+	test=`echo "$LINE_" | egrep '^[|]'`
+	ret=$?
+	if [ $ret -eq 0 ]
+	then
+
+		STAT=22
+
+		MULTILINE=1
+#		check_close_attrs
+
+		#cut leading | from txl multiline text
+		LINE_=`echo "$LINE_" | cut -b 2- | sed 's/&/\&amp;/g' | sed 's/</\&lt;/g' | sed 's/>/\&gt;/g'`
+
+		#==
+		handle_closing_tag_same_line
+	else
+		#if changed, need to close element
+		if [ $MULTILINE_PREV -eq 1 ]
+		then
+			#===
+			stack_pop EL_STACK elem
+			echo "</$elem>"
+		fi
+			MULTILINE=0
+	fi
+} #end handle_multiline_text
+
+#=============================================================
+#  MAIN LOOP
+#=============================================================
+
+#need to preserve leading / trailing whitespace
+#http://wiki.bash-hackers.org/commands/builtin/read
+
+while IFS= read -r; do
+	LINE=$REPLY
+
+	STAT_PREV=$STAT
+	STAT=0
+	MULTILINE_PREV=$MULTILINE
+	MULTILINE=0
+
+
+#per line:
+
+#strip off leading spaces and tabs
+	LINE_=`echo "$LINE" | sed 's/^[ \t]*//'`
+
+#handle empty line
+	handle_empty_line
+
+#handle comment: //comment
+	handle_comment
+
+#look for ROOT_EL tag: name::
+	find_root
+
+#multiline start:    .el 1st line\\
+#multiline text:    |foo bar
+#end tag on the same line: aaa\\.
+	handle_multiline_text
+ 
+#handle new element with children: =name (optional mixed content)
+	handle_children
+
+#handle leaf element: .name (content)
+	handle_leaf
+
+#navigate: one level up: ..
+	handle_nav_up
+
+#navigate: up to root: .*
+	handle_nav_root
+
+#navigate: close document with all needed closing tags incl. </$ROOT_EL>): ::
+	handle_nav_close
+
+#handle attributes (if no other type matched) it must be an attribute: name value
+	handle_attribute
+
+#pipe through post process
+#=============================================================
+
+done \
+	| xmlstarlet tr $DIR/compact_attributes.xsl - 2>/dev/null \
+	| xmlstarlet ed -d "//attributes__" - 2>/dev/null | xmlstarlet fo -e utf-8 - 2>/dev/null
+ret=$?
+
+if [ $ret -ne 0 ]
+then
+	echo "the txl document could not be parsed, it seems invalid." >&2
+	echo "<error>the txl document could not be parsed, it seems invalid.</error>" | xmlstarlet fo
+fi
+
 #make sure the input has an empty line before EOF!
 
 #post process: move attributes__/a to parent nodes, 
 #remove helper elements attributes__
 
 #clean up
-stack_destroy stack
-#rm -f "$TEMP"
+stack_destroy EL_STACK
