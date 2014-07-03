@@ -136,6 +136,7 @@ handle_empty_line()
 
 		check_close_attrs
 	fi
+	return $RET
 }
 
 handle_comment()
@@ -166,6 +167,7 @@ handle_comment()
 		check_close_attrs
 	fi
 
+	return $RET
 } #end handle_comment
 
 
@@ -224,6 +226,8 @@ handle_children()
 		fi
 		#stack_print EL_STACK
 	fi
+
+	return $RET
 } #end handle_children
 
 
@@ -260,6 +264,8 @@ handle_leaf()
 			echo "<$elem></$elem>"
 		fi
 	fi
+
+	return $RET
 } #end handle_leaf
 
 
@@ -279,6 +285,8 @@ handle_nav_up()
 		#close element
 		echo "</$elem>"
 	fi
+
+	return $RET
 } #end handle_nav_up
 
 
@@ -316,6 +324,8 @@ handle_nav_element()
 			fi
 		done
 	fi
+
+	return $RET
 } #end handle_nav_up
 
 handle_nav_root()
@@ -338,6 +348,8 @@ handle_nav_root()
 			stack_size EL_STACK left_on_stack
 		done
 	fi
+
+	return $RET
 } #end handle_nav_root
 
 
@@ -364,6 +376,8 @@ handle_nav_close()
 		#=======
 		exit
 	fi
+
+	return $RET
 } #end handle_nav_close
 
 
@@ -489,9 +503,19 @@ while IFS= read -r; do
 
 #handle empty line
 	handle_empty_line
+	r=$?
+	if [ $r -eq 0 ]
+	then
+		continue
+	fi
 
 #handle comment: //comment
 	handle_comment
+	r=$?
+	if [ $r -eq 0 ]
+	then
+		continue
+	fi
 
 #look for ROOT_EL tag: name::
 	find_root
@@ -503,18 +527,44 @@ while IFS= read -r; do
  
 #handle new element with children: =name (optional mixed content)
 	handle_children
+	r=$?
+	if [ $r -eq 0 ]
+	then
+		continue
+	fi
 
 #handle leaf element: .name (content)
 	handle_leaf
+	r=$?
+	if [ $r -eq 0 ]
+	then
+		continue
+	fi
 
 #navigate: one level up: ..
 	handle_nav_up
+	r=$?
+	if [ $r -eq 0 ]
+	then
+		continue
+	fi
 
 #navigate: levels up to element: _name
 	handle_nav_element
+	r=$?
+	if [ $r -eq 0 ]
+	then
+		continue
+	fi
 
 #navigate: up to root: .*
 	handle_nav_root
+	r=$?
+	if [ $r -eq 0 ]
+	then
+		continue
+	fi
+
 
 #navigate: close document with all needed closing tags incl. </$ROOT_EL>): ::
 	handle_nav_close
