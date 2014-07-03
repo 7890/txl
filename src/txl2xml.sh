@@ -157,6 +157,15 @@ handle_comment()
 			echo "<!-- $comment -->"
 		fi
 	fi
+
+	do_test "^/-"
+	if [ $RET -eq 0 ]
+	then
+		STAT=$S_COMMENT
+
+		check_close_attrs
+	fi
+
 } #end handle_comment
 
 

@@ -4,6 +4,9 @@ myxml::
 //empty lines are ignored
 //whitespace and tabs at the beginning of a line are removed
 
+/-comments of type '/-' won't show up in XML result tree
+/-======================================================
+
 =meta
 .leaf gugus hallo
 a b
