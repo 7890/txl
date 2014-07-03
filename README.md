@@ -10,66 +10,91 @@ Anatomy of a txl file
 ---------------------
 
 ```
-myroot::
-
-//first line specifies root element: name::
 //comments start with '//'
 //empty lines are ignored
 //whitespace and tabs at the beginning of a line are removed
 
+//root element
+myroot::
+//attribute
+a 1
+
+//an element with children: =name
 =first-child
-//an element with children: =name (mixed content)
 
+//a leaf element: .name
 .myleaf hi
-//a leaf element: .name (text content)
 
+//a attr="val" to myleaf
 attr val
-//a simple attr="val"
 
-..
-//navigate up one level (now again at myroot/)
+
+..//navigate up one level (now again at myroot/)
 
 .another-child
 =and_another
 with attr
 .and leaf
-..
-..
+.* //navigate up to root
 
-//end
-//see examples in test_data
+=x
+=y
+=z
+.a b
+
+//navigate back to x
+_x
+.y 2
+
+/-======== unprocessed comment
+//close document (navigate all up, close root)
+::
+
+document should have at least one newline after last command
+comments after document close are ignored
+see examples in test_data
+
 ```
 
 ```
 $ cat /tmp/foo | src/txl2xml.sh #0 <- no comments when called with any param
-<?xml version="1.0"?>
-<myroot>
-  <!-- //first line specifies root element: name:: -->
-  <!-- //comments start with '//' -->
-  <!-- //empty lines are ignored -->
-  <!-- //whitespace and tabs at the beginning of a line are removed -->
+<?xml version="1.0" encoding="utf-8"?>
+<!-- comments start with '//' -->
+<!-- empty lines are ignored -->
+<!-- whitespace and tabs at the beginning of a line are removed -->
+<!-- root element -->
+<myroot a="1">
+  <!-- attribute -->
+  <!-- an element with children: =name -->
   <first-child>
-    <!-- //an element with children: =name (mixed content) -->
+    <!-- a leaf element: .name -->
     <myleaf attr="val">hi</myleaf>
-    <!-- //a leaf element: .name (text content) -->
-    <!-- //a simple attr="val" -->
+    <!-- a attr="val" to myleaf -->
   </first-child>
-  <!-- //navigate up one level (now again at myroot/) -->
   <another-child/>
   <and_another with="attr">
     <and>leaf</and>
   </and_another>
-  <!-- //see examples in test_data -->
+  <x>
+    <y>
+      <z>
+        <a>b</a>
+        <!-- navigate back to x -->
+      </z>
+    </y>
+    <y>2</y>
+    <!-- close document (navigate all up, close root) -->
+  </x>
 </myroot>
 
 
 #"on-the-fly" creation
 
-$ printf "root::\n=meta\n.name here we go\nattr val\n..\n..\.." | src/txl2xml.sh 
-<?xml version="1.0"?>
+printf "root::\n=meta\n.special └\nattr val\n::\n" | src/txl2xml.sh
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <meta>
-    <name attr="val">here we go</name>
+    <special attr="val">└</special>
   </meta>
 </root>
 
@@ -101,7 +126,7 @@ attr2 $2
 _EOF_
 
 $ test_data/d.txl a b "`uname --kernel-release`" | src/txl2xml.sh 
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="utf-8"?>
 <anode>
   <child1 attr1="a" attr2="b">
     <leaf>3.2.0-39-lowlatency</leaf>
