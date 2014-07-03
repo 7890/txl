@@ -155,7 +155,7 @@ handle_comment()
 			# -- inside xml comment not allowed
 			comment=`echo "$LINE_" | sed 's/^\/\///g' | sed 's/--/==/g'`
 
-			echo "<!-- $comment -->"
+			echo "<!--"$comment"-->"
 		fi
 	fi
 
@@ -577,7 +577,7 @@ while IFS= read -r; do
 
 done \
 	| xmlstarlet tr $DIR/compact_attributes.xsl - 2>/dev/null \
-	| xmlstarlet ed -d "//attributes__" - 2>/dev/null | xmlstarlet fo -e utf-8 - 2>/dev/null
+	| xmlstarlet ed -d "//attributes__" - 2>/dev/null | xmlstarlet fo -e UTF-8 - 2>/dev/null
 ret=$?
 
 if [ $ret -ne 0 ]
