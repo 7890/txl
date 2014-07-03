@@ -71,6 +71,7 @@ S_COMMENT=3
 S_CHILDREN=4
 S_LEAF=5
 S_NAVIG_UP=6
+S_NAVIG_EL=61
 S_NAVIG_ROOT=7
 S_NAVIG_CLOSE=8
 S_NAVIG_EL=9
@@ -272,13 +273,41 @@ handle_nav_up()
 } #end handle_nav_up
 
 
+handle_nav_element()
+{
+	#navigate levels up to element:    _name
+	do_test "^_."
+	if [ $RET -eq 0 ]
+	then
+		STAT=$S_NAVIG_EL
 
+		check_close_attrs
 
+		target=`echo "$LINE_" | cut -d"_" -f2-`
 
+		#===
+		stack_size EL_STACK left_on_stack
 
+		while [ $left_on_stack -gt 0 ]
+		do
+			stack_pop EL_STACK elem
 
+			if [ x"$elem" = x"$target" ]
+			then
+				#push back and return
+				stack_push EL_STACK "$elem"
+				return 0
+			fi
 
-
+			if [ x"$elem" != x"$target" ]
+			then
+				#close element
+				echo "</$elem>"
+				stack_size EL_STACK left_on_stack
+			fi
+		done
+	fi
+} #end handle_nav_up
 
 handle_nav_root()
 {
@@ -286,7 +315,7 @@ handle_nav_root()
 	do_test "^\.\*"
 	if [ $RET -eq 0 ]
 	then
-		STAT=51
+		STAT=$S_NAVIG_ROOT
 		check_close_attrs
 
 		#===
@@ -309,7 +338,7 @@ handle_nav_close()
 	do_test "^::"
 	if [ $RET -eq 0 ]
 	then
-		STAT=51
+		STAT=$S_NAVIG_CLOSE
 		check_close_attrs
 
 		#===
@@ -471,6 +500,9 @@ while IFS= read -r; do
 
 #navigate: one level up: ..
 	handle_nav_up
+
+#navigate: levels up to element: _name
+	handle_nav_element
 
 #navigate: up to root: .*
 	handle_nav_root

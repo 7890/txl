@@ -18,7 +18,17 @@ do it again
 attribute please
 x y+z
 =e
-:://close document (create all necessary closing tags)
+=x
+=y
+=z
+=a
 
+//navigate back to x
+_x
+
+=y
+.z
+
+:://close document (create all necessary closing tags)
 
 //(comments can start anywhere if // are the first printing chars on the line)
