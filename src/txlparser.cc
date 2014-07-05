@@ -246,7 +246,7 @@ int handle_children()
 		string el="";
 		if(pos>=0)
 		{
-			el=LINE.substr(0,pos-1);
+			el=LINE.substr(0,pos);
 			string text=LINE.substr(pos+1,LINE.length());
 
 			encode(text);
