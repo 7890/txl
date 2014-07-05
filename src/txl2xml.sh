@@ -19,10 +19,6 @@
 
 #reserved tag name: 'attributes__'
 
-#ls -1 test_data/*.txl | grep -v d.txl | while read line; \
-#do echo $line; echo "============"; cat $line | src/txl2xml.sh; done; \
-#test_data/d.txl 1 2 3 | src/txl2xml.sh
-
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [ ! -e $DIR/txlparser ]
