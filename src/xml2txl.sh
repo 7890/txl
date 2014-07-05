@@ -31,8 +31,7 @@ for tool in {xmlstarlet,sed}; \
 #	ENABLE_COMMENTS="0"
 #fi
 
-cat - | xmlstarlet tr $DIR/xml2txl.xsl - 
-#2>/dev/null
+cat - | xmlstarlet tr $DIR/xml2txl.xsl - 2>/dev/null
 
 ret=$?
 if [ $ret -ne 0 ]
