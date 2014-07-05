@@ -100,6 +100,7 @@ test:
 	@echo ""
 
 	@echo "DUMMY"
+	#ls -1 test_data/*.txl | while read line; do echo "$line"; echo "======"; cat $line | txl2xml > /tmp/a; cat /tmp/a | xml2txl | txl2xml > /tmp/b; diff /tmp/a /tmp/b; done
 
 	@echo ""
 	@echo "done."
