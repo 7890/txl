@@ -2,8 +2,10 @@ txl - write plain text, get XML
 ===============================
 
 ```
-#quick test
-$ cat test_data/a.txl | src/txl2xml.sh
+$ make && sudo make install
+
+#quick test (after make, sudo make install)
+$ cat test_data/a.txl | txl2xml
 ```
 
 Anatomy of a txl file
@@ -46,6 +48,10 @@ with attr
 _x
 .y 2
 
+//simplified multi-nesting
+=a/b/c/d
+.x
+
 /-======== unprocessed comment
 //close document (navigate all up, close root)
 ::
@@ -57,19 +63,27 @@ see examples in test_data
 ```
 
 ```
-$ cat /tmp/foo | src/txl2xml.sh #0 <- no comments when called with any param
-<?xml version="1.0" encoding="utf-8"?>
-<!-- comments start with '//' -->
-<!-- empty lines are ignored -->
-<!-- whitespace and tabs at the beginning of a line are removed -->
-<!-- root element -->
+$ cat /tmp/foo | txl2xml
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+  <meta>
+    <special attr="val">└</special>
+  </meta>
+</root>
+ub64@ub64:~/github/txl$ ne /tmp/foo
+ub64@ub64:~/github/txl$ cat /tmp/foo | txl2xml 
+<?xml version="1.0" encoding="UTF-8"?>
+<!--comments start with '//'-->
+<!--empty lines are ignored-->
+<!--whitespace and tabs at the beginning of a line are removed-->
+<!--root element-->
 <myroot a="1">
-  <!-- attribute -->
-  <!-- an element with children: =name -->
+  <!--attribute-->
+  <!--an element with children: =name-->
   <first-child>
-    <!-- a leaf element: .name -->
+    <!--a leaf element: .name-->
     <myleaf attr="val">hi</myleaf>
-    <!-- a attr="val" to myleaf -->
+    <!--a attr="val" to myleaf-->
   </first-child>
   <another-child/>
   <and_another with="attr">
@@ -79,27 +93,42 @@ $ cat /tmp/foo | src/txl2xml.sh #0 <- no comments when called with any param
     <y>
       <z>
         <a>b</a>
-        <!-- navigate back to x -->
+        <!--navigate back to x-->
       </z>
     </y>
     <y>2</y>
-    <!-- close document (navigate all up, close root) -->
+    <!--simplified multi-nesting-->
+    <a>
+      <b>
+        <c>
+          <d>
+            <x/>
+            <!--close document (navigate all up, close root)-->
+          </d>
+        </c>
+      </b>
+    </a>
   </x>
 </myroot>
+```
 
+"On-The-Fly" Creation
+---------------------
 
-#"on-the-fly" creation
-
-printf "root::\n=meta\n.special └\nattr val\n::\n" | src/txl2xml.sh
+```
+printf "root::\n=meta\n.special └\nattr val\n::\n" | txl2xml
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <meta>
     <special attr="val">└</special>
   </meta>
 </root>
+```
 
-#templating
+Templating
+----------
 
+```
 $ cat test_data/d.txl 
 #!/bin/bash
 #example for a simle template
@@ -125,7 +154,7 @@ attr2 $2
 
 _EOF_
 
-$ test_data/d.txl a b "`uname --kernel-release`" | src/txl2xml.sh 
+$ test_data/template.sh a b "`uname --kernel-release`" | txl2xml
 <?xml version="1.0" encoding="utf-8"?>
 <anode>
   <child1 attr1="a" attr2="b">
