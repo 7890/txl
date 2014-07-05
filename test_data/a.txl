@@ -25,7 +25,7 @@ attr for leaf
 .second leaf
 //end nested
 ..
-  //test indented (should make no difference)
+  //text indented (should make no difference)
   =another
   .xxx yyy
   ..//end another
