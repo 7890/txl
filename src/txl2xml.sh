@@ -56,8 +56,8 @@ for tool in {xmlstarlet,sed,cut,egrep,rev}; \
 #===========================================
 
 cat - | $DIR/txlparser \
-	| xmlstarlet tr $DIR/compact_attributes.xsl - 2>/dev/null \
-	| xmlstarlet ed -d "//attributes__" - 2>/dev/null \
+	| xmlstarlet tr $DIR/compact_attributes.xsl 2>/dev/null \
+	| xmlstarlet ed -d "//attributes__" 2>/dev/null \
 	| xmlstarlet fo -e UTF-8 - 2>/dev/null
 
 ret=$?
