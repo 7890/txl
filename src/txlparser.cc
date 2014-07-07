@@ -434,8 +434,6 @@ int handle_closing_tag_same_line()
 		//cut trailing \\.
 		LINE=LINE.substr(0,LINE.length()-3);
 
-		encode(LINE);
-
 		string el=elements.top();
 		elements.pop();
 
@@ -443,7 +441,6 @@ int handle_closing_tag_same_line()
 	} 
 	else
 	{
-		encode(LINE);
 		printf("%s\n",LINE.c_str());
 	}
 }
@@ -460,13 +457,11 @@ int handle_multiline_start()
 		int pos=LINE.find("\\\\");
 
 		LINE=LINE.substr(0,pos);
-		return 1;
 	}
 	else
 	{
 		MULTILINE_START_=0;
 	}
-	return 1;
 }
 
 int handle_multiline_text()
@@ -481,17 +476,17 @@ int handle_multiline_text()
 		//cut leading | from txl multiline text
 		LINE=LINE.substr(1,LINE.length());
 
-		handle_closing_tag_same_line();
+		encode(LINE);
 
-		return 1;
+		handle_closing_tag_same_line();
 	}
 	else if(MULTILINE_PREV_==1)
 	{
 		string el=elements.top();
 		elements.pop();
 		printf("</%s>\n",el.c_str());
+		MULTILINE_=0;		
 	}
-	MULTILINE_=0;		
 }
 
 int main (int argc, char *argv[]) 
