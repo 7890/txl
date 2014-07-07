@@ -5,7 +5,9 @@ txl - write plain text, get XML
 $ make && sudo make install
 
 #quick test (after make, sudo make install)
-$ cat test_data/a.txl | txl2xml
+$ cat test_data/a.txl | txl2xml > /tmp/a.xml
+$ cat /tmp/a.xml | xml2txl
+#note: namespaces and mixed content are not supported
 ```
 
 Anatomy of a txl file
