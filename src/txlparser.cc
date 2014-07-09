@@ -10,8 +10,10 @@ using namespace std;
 #include <iostream>
 #include <fstream>
 #include <stack>
+#include <iostream>
 #include <string.h>
 #include <regex.h>
+
 
 stack <string> elements;
 
@@ -212,6 +214,48 @@ int find_root()
 	}
 	return 1;
 }//end find_root
+
+//&myfile.txl
+int handle_include()
+{
+	if(! re(LINE,"^[&].*"))
+	{
+		string file=LINE.substr(1,LINE.length());
+
+		printf("<!-- include file %s -->\n",file.c_str());
+
+		ifstream ifile(file);
+		if (!ifile) 
+		{
+			printf("<!-- file %s does not exist! -->\n",file.c_str());
+			//ignore the line, don't look further
+			return 0;
+		}
+
+		string cmd_string="cat "+file+" | txlparser";
+
+		FILE *cmd;
+
+		if((cmd= popen(cmd_string.c_str(),"r")) == NULL) 
+		{
+			printf("<!-- include file %s failed! -->\n",file.c_str());
+		}
+		else
+		{
+			char buffer[1024];
+			char * line = NULL;
+			while ((line = fgets(buffer, sizeof buffer, cmd)) != NULL) 
+			{
+				printf("%s",line);
+			}
+		}
+		return 0;
+	}
+	else
+	{
+		return 1;
+	}
+}//end handle_include
 
 //=a/b/c/d
 int handle_children()
@@ -530,6 +574,8 @@ MAIN LOOP
 		if(! handle_comment()){continue;}
 
 		if(! find_root()){continue;}
+
+if(! handle_include()){continue;}
 
 		//
 		handle_multiline_text();
