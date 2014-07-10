@@ -1,6 +1,6 @@
 //parse .txl files, create xml
 //output needs to be tranformed with compact_attributes.xsl, remove attributes__
-//tb/140705
+//tb/140705+
 //g++ -o txlparser txlparser.cc -std=gnu++0x
 
 float version=0.1;
@@ -10,10 +10,8 @@ using namespace std;
 #include <iostream>
 #include <fstream>
 #include <stack>
-#include <iostream>
 #include <string.h>
 #include <regex.h>
-
 
 stack <string> elements;
 
@@ -215,6 +213,56 @@ int find_root()
 	return 1;
 }//end find_root
 
+int handle_xml_comment()
+{
+	//comment line
+	if (! re(LINE,"^<-"))
+	{
+		printf("<!--\n");
+		return 0;
+	}
+	else if (! re(LINE,"^->"))
+	{
+		printf("-->\n");
+		return 0;
+	}
+	return 1;
+}
+
+//arbitrary command, must deliver xml
+//%command with args
+int handle_command()
+{
+	if(! re(LINE,"^[%].*"))
+	{
+		string cmd_string=LINE.substr(1,LINE.length());
+
+		//printf("<!-- %s -->\n",cmd_string.c_str());
+
+		FILE *cmd;
+
+		if((cmd= popen(cmd_string.c_str(),"r")) == NULL) 
+		{
+			printf("<!-- command %s failed! -->\n",cmd_string.c_str());
+		}
+		else
+		{
+			char buffer[1024];
+			char * line = NULL;
+			while ((line = fgets(buffer, sizeof buffer, cmd)) != NULL) 
+			{
+				printf("%s",line);
+			}
+		}
+		return 0;
+	}
+	else
+	{
+		return 1;
+	}
+}
+
+//including txl file
 //&myfile.txl
 int handle_include()
 {
@@ -573,9 +621,13 @@ MAIN LOOP
 
 		if(! handle_comment()){continue;}
 
+		if(! handle_xml_comment()){continue;}
+
 		if(! find_root()){continue;}
 
-if(! handle_include()){continue;}
+		if(! handle_include()){continue;}
+
+		if(! handle_command()){continue;}
 
 		//
 		handle_multiline_text();
