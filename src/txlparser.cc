@@ -218,6 +218,7 @@ int handle_xml_comment()
 	//comment line
 	if (! re(LINE,"^<-"))
 	{
+		check_close_attrs();
 		printf("<!--\n");
 		return 0;
 	}
@@ -235,6 +236,8 @@ int handle_command()
 {
 	if(! re(LINE,"^[%].*"))
 	{
+		check_close_attrs();
+
 		string cmd_string=LINE.substr(1,LINE.length());
 
 		//printf("<!-- %s -->\n",cmd_string.c_str());
@@ -268,6 +271,8 @@ int handle_include()
 {
 	if(! re(LINE,"^[&].*"))
 	{
+		check_close_attrs();
+
 		string file=LINE.substr(1,LINE.length());
 
 		printf("<!-- include file %s -->\n",file.c_str());
