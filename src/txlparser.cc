@@ -53,8 +53,29 @@ int MULTILINE_START_=0;
 
 void trim_leading(string& s)
 {
-	size_t p = s.find_first_not_of(" \t");
+	int p = s.find_first_not_of(" \t");
 	s.erase(0, p);
+}
+
+/*
+this will strip the ^M
+pastebin "raw" adds these at end of lines
+
+cat -A revelas:
+/-this is a txl file^M$
+
+should be:
+/-this is a txl file$
+
+*/
+
+void remove_ctrl_m(string& s)
+{
+	int p = s.find("\r");
+	if(p!=-1)
+	{
+		s.erase(p);
+	}
 }
 
 //escape text for xml
@@ -621,6 +642,8 @@ MAIN LOOP
 		MULTILINE_=0;
 
 		trim_leading(LINE);
+
+		remove_ctrl_m(LINE);
 
 		if(! handle_empty_line()){continue;}
 
