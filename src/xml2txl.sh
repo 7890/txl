@@ -10,6 +10,18 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+XSLDIR="$DIR/txl_xsl"
+
+XSL1="$XSLDIR/xml2txl.xsl"
+
+if [ ! -e "$XSL1" ]
+then
+	echo "$XSL1 not found!" >&2
+	echo "<error>$XSL1 not found!</error>"
+
+	exit 1
+fi
+
 checkAvail()
 {
 	which "$1" >/dev/null 2>&1
@@ -31,7 +43,7 @@ for tool in {xmlstarlet,sed}; \
 #	ENABLE_COMMENTS="0"
 #fi
 
-cat - | xmlstarlet tr $DIR/xml2txl.xsl - 2>/dev/null
+cat - | xmlstarlet tr "$XSL1" - 2>/dev/null
 
 ret=$?
 if [ $ret -ne 0 ]

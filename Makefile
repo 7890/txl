@@ -3,7 +3,8 @@
 CC = g++
 CFLAGS ?= -std=gnu++0x
 PREFIX ?= /usr/local
-INSTALLDIR ?= $(PREFIX)/bin
+INSTALLDIR = $(PREFIX)/bin
+XSLDIR = $(INSTALLDIR)/txl_xsl
 
 SRC = src
 BLD = build
@@ -58,9 +59,11 @@ install:
 	cp $(BLD)/txlparser $(INSTALLDIR)/
 	cp $(BLD)/txl2xml $(INSTALLDIR)/
 	cp $(BLD)/xml2txl $(INSTALLDIR)/
-	cp $(BLD)/compact_attributes.xsl $(INSTALLDIR)/
-	cp $(BLD)/xml2txl.xsl $(INSTALLDIR)/
 
+	mkdir -p $(XSLDIR)
+
+	cp $(BLD)/compact_attributes.xsl $(XSLDIR)/
+	cp $(BLD)/xml2txl.xsl $(XSLDIR)/
 
 	@echo ""
 	@echo "use: cat a.txl | txl2xml"
@@ -85,8 +88,13 @@ uninstall:
 	rm -f $(INSTALLDIR)/txlparser
 	rm -f $(INSTALLDIR)/txl2xml
 	rm -f $(INSTALLDIR)/xml2txl
+
+#legacy uninstall
 	rm -f $(INSTALLDIR)/compact_attributes.xsl
 	rm -f $(INSTALLDIR)/xml2txl.xsl
+#--
+
+	rm -rf $(XSLDIR)
 
 	@echo ""
 	@echo "done."

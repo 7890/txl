@@ -21,6 +21,10 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+XSLDIR="$DIR/txl_xsl"
+
+XSL1="$XSLDIR/compact_attributes.xsl"
+
 if [ ! -e $DIR/txlparser ]
 then
 	echo "txlparser not found!" >&2
@@ -29,10 +33,10 @@ then
 	exit 1
 fi
 
-if [ ! -e $DIR/compact_attributes.xsl ]
+if [ ! -e "$XSL1" ]
 then
-	echo "compact_attributes.xsl not found!" >&2
-	echo "<error>compact_attributes.xsl not found!</error>"
+	echo "$XSL1 not found!" >&2
+	echo "<error>$XSL1 not found!</error>"
 
 	exit 1
 fi
@@ -55,8 +59,8 @@ for tool in {xmlstarlet,sed,cut,egrep,rev}; \
 #process input and pipe through post process
 #===========================================
 
-cat - | $DIR/txlparser \
-	| xmlstarlet tr $DIR/compact_attributes.xsl 2>/dev/null \
+cat - | "$DIR"/txlparser \
+	| xmlstarlet tr "$XSL1" 2>/dev/null \
 	| xmlstarlet ed -d "//attributes__" 2>/dev/null \
 	| xmlstarlet fo -e UTF-8 - 2>/dev/null
 
