@@ -3,18 +3,16 @@
 CC = g++
 CFLAGS ?= -std=gnu++0x
 PREFIX ?= /usr/local
-INSTALLDIR = $(PREFIX)/bin
-XSLDIR = $(INSTALLDIR)/txl_xsl
+bindir = $(PREFIX)/bin
+XSLDIR = $(bindir)/txl_xsl
 
 SRC = src
 BLD = build
-#DOC = doc
-#DIST = dist
 TEST = test_data
 
 default: build
 
-all: clean build test
+all: build
 
 build: $(SRC)/txlparser.cc $(SRC)/txl2xml.sh $(SRC)/xml2txl.sh $(SRC)/compact_attributes.xsl $(SRC)/xml2txl.xsl
 
@@ -25,7 +23,7 @@ build: $(SRC)/txlparser.cc $(SRC)/txl2xml.sh $(SRC)/xml2txl.sh $(SRC)/compact_at
 	@echo "CC        : $(CC)"
 	@echo "CFLAGS    : $(CFLAGS)"
 	@echo "PREFIX    : $(PREFIX)"
-	@echo "INSTALLDIR: $(INSTALLDIR)"
+	@echo "bindir    : $(bindir)"
 	@echo ""
 	@echo "to change these variables either edit the Makefile or use i.e.:"
 	@echo "sudo make install PREFIX=/usr"
@@ -43,27 +41,30 @@ build: $(SRC)/txlparser.cc $(SRC)/txl2xml.sh $(SRC)/xml2txl.sh $(SRC)/compact_at
 	@echo "done."
 	@echo ""
 
-install: 
+install:
 
 	@echo ""
 	@echo "installing txl2xml, xml2txl"
 	@echo "---------------------------"
 	@echo ""
-	@echo "INSTALLDIR: $(INSTALLDIR)"
+	@echo "DESTDIR: $(DESTDIR)"
+	@echo "bindir: $(bindir)"
 	@echo ""
 	@echo "'make install' needs to be run with root privileges, i.e."
 	@echo ""
 	@echo "sudo make install"
 	@echo ""
 
-	cp $(BLD)/txlparser $(INSTALLDIR)/
-	cp $(BLD)/txl2xml $(INSTALLDIR)/
-	cp $(BLD)/xml2txl $(INSTALLDIR)/
+	install -d $(DESTDIR)$(bindir)/
 
-	mkdir -p $(XSLDIR)
+	install -m755 $(BLD)/txlparser $(DESTDIR)$(bindir)/
+	install -m755 $(BLD)/txl2xml $(DESTDIR)$(bindir)/
+	install -m755 $(BLD)/xml2txl $(DESTDIR)$(bindir)/
 
-	cp $(BLD)/compact_attributes.xsl $(XSLDIR)/
-	cp $(BLD)/xml2txl.xsl $(XSLDIR)/
+	install -d $(DESTDIR)$(XSLDIR)
+
+	install -m644 $(BLD)/compact_attributes.xsl $(DESTDIR)$(XSLDIR)/
+	install -m644 $(BLD)/xml2txl.xsl $(DESTDIR)$(XSLDIR)/
 
 	@echo ""
 	@echo "use: cat a.txl | txl2xml"
@@ -78,23 +79,24 @@ uninstall:
 	@echo "uninstalling txl2xml, xml2txl"
 	@echo "-----------------------------"
 	@echo ""
-	@echo "INSTALLDIR: $(INSTALLDIR)"
+	@echo "DESTDIR: $(DESTDIR)"
+	@echo "bindir: $(bindir)"
 	@echo ""
 	@echo "'make uninstall' needs to be run with root privileges, i.e."
 	@echo ""
 	@echo "sudo make uninstall"
 	@echo ""
 
-	rm -f $(INSTALLDIR)/txlparser
-	rm -f $(INSTALLDIR)/txl2xml
-	rm -f $(INSTALLDIR)/xml2txl
+	rm -f $(DESTDIR)$(bindir)/txlparser
+	rm -f $(DESTDIR)$(bindir)/txl2xml
+	rm -f $(DESTDIR)$(bindir)/xml2txl
 
-#legacy uninstall
-	rm -f $(INSTALLDIR)/compact_attributes.xsl
-	rm -f $(INSTALLDIR)/xml2txl.xsl
-#--
+	rm -f $(DESTDIR)$(XSLDIR)/compact_attributes.xsl
+	rm -f $(DESTDIR)$(XSLDIR)/xml2txl.xsl
 
-	rm -rf $(XSLDIR)
+	-rmdir $(DESTDIR)$(XSLDIR)
+
+	-rmdir $(DESTDIR)$(bindir)
 
 	@echo ""
 	@echo "done."
@@ -121,11 +123,10 @@ clean:
 	@echo "---------------------------"
 	@echo ""
 
-	mkdir -p $(BLD)
-	rm -f ./$(BLD)/*
+	rm -rf $(BLD)
 
 	@echo ""
 	@echo "done."
 	@echo ""
 
-.PHONY: all
+.PHONY: all build clean test install uninstall
