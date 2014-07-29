@@ -7,6 +7,7 @@ float version=0.1;
 
 using namespace std;
 
+#include <cstdlib>
 #include <iostream>
 #include <fstream>
 #include <stack>
@@ -298,7 +299,7 @@ int handle_include()
 
 		printf("<!-- include file %s -->\n",file.c_str());
 
-		ifstream ifile(file);
+		ifstream ifile(file.c_str());
 		if (!ifile) 
 		{
 			printf("<!-- file %s does not exist! -->\n",file.c_str());
