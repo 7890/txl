@@ -3,7 +3,7 @@
 //tb/140705+
 //g++ -o txlparser txlparser.cc -std=gnu++0x
 
-float version=0.1;
+float version=0.2;
 
 using namespace std;
 
@@ -81,11 +81,11 @@ void remove_ctrl_m(string& s)
 
 //escape text for xml
 //http://stackoverflow.com/questions/5665231/most-efficient-way-to-escape-xml-html-in-c-string
-void encode(string& data) 
+void encode(string& data)
 {
 	string buffer;
 	buffer.reserve(data.size());
-	for(size_t pos = 0; pos != data.size(); ++pos) 
+	for(size_t pos = 0; pos != data.size(); ++pos)
 	{
 		switch(data[pos])
 		{
@@ -107,7 +107,7 @@ int re(string s,string pattern)
 	int reti;
 
 	reti = regcomp(&regex, pattern.c_str(), 0);
-	if (reti) 
+	if (reti)
 	{
 		fprintf(stderr, "Could not compile regex\n");
 		exit(1);
@@ -117,16 +117,16 @@ int re(string s,string pattern)
 	reti = regexec(&regex, s.c_str(), 0, NULL, 0);
 
 	//match
-	if (!reti) 
+	if (!reti)
 	{
 		;;
 	}
 	//no match
-	else if (reti == REG_NOMATCH) 
+	else if (reti == REG_NOMATCH)
 	{
 		;;
 	}
-	else 
+	else
 	{
 		char msgbuf[100];
 		regerror(reti, &regex, msgbuf, sizeof(msgbuf));
@@ -266,7 +266,7 @@ int handle_command()
 
 		FILE *cmd;
 
-		if((cmd= popen(cmd_string.c_str(),"r")) == NULL) 
+		if((cmd= popen(cmd_string.c_str(),"r")) == NULL)
 		{
 			printf("<!-- command %s failed! -->\n",cmd_string.c_str());
 		}
@@ -274,7 +274,7 @@ int handle_command()
 		{
 			char buffer[1024];
 			char * line = NULL;
-			while ((line = fgets(buffer, sizeof buffer, cmd)) != NULL) 
+			while ((line = fgets(buffer, sizeof buffer, cmd)) != NULL)
 			{
 				printf("%s",line);
 			}
@@ -300,7 +300,7 @@ int handle_include()
 		printf("<!-- include file %s -->\n",file.c_str());
 
 		ifstream ifile(file.c_str());
-		if (!ifile) 
+		if (!ifile)
 		{
 			printf("<!-- file %s does not exist! -->\n",file.c_str());
 			//ignore the line, don't look further
@@ -311,7 +311,7 @@ int handle_include()
 
 		FILE *cmd;
 
-		if((cmd= popen(cmd_string.c_str(),"r")) == NULL) 
+		if((cmd= popen(cmd_string.c_str(),"r")) == NULL)
 		{
 			printf("<!-- include file %s failed! -->\n",file.c_str());
 		}
@@ -319,7 +319,7 @@ int handle_include()
 		{
 			char buffer[1024];
 			char * line = NULL;
-			while ((line = fgets(buffer, sizeof buffer, cmd)) != NULL) 
+			while ((line = fgets(buffer, sizeof buffer, cmd)) != NULL)
 			{
 				printf("%s",line);
 			}
@@ -511,7 +511,6 @@ int handle_nav_close()
 		}
 
 		exit(0);
-		return 0;
 	}
 	return 1;
 }
@@ -557,7 +556,7 @@ int handle_closing_tag_same_line()
 		elements.pop();
 
 		printf("%s</%s>\n",LINE.c_str(),el.c_str());
-	} 
+	}
 	else
 	{
 		printf("%s\n",LINE.c_str());
@@ -576,16 +575,19 @@ int handle_multiline_start()
 		int pos=LINE.find("\\\\");
 
 		LINE=LINE.substr(0,pos);
+
+		return 0;
 	}
 	else
 	{
 		MULTILINE_START_=0;
+		return 1;
 	}
 }
 
 int handle_multiline_text()
 {
-	handle_multiline_start();
+	if(! handle_multiline_start()){return 0;}
 
 	if(! re(LINE,"^[|]"))
 	{
@@ -598,28 +600,39 @@ int handle_multiline_text()
 		encode(LINE);
 
 		handle_closing_tag_same_line();
+
+		//put back '|' so following rules don't interprete
+		LINE="|"+LINE.substr();
+
+		return 0;
 	}
 	else if(MULTILINE_PREV_==1)
 	{
 		string el=elements.top();
 		elements.pop();
 		printf("</%s>\n",el.c_str());
-		MULTILINE_=0;		
+		MULTILINE_=0;
+		return 0;
 	}
 }
 
-int main (int argc, char *argv[]) 
+int main (int argc, char *argv[])
 {
 	if(argc==2)
 	{
-		if( ! strcmp(argv[1],"-h") 
+		if( ! strcmp(argv[1],"-h")
 			|| ! strcmp(argv[1],"--help"))
 		{
 			printf("txlparser help:\n");
+			printf("cat txlfile | txlparser\n");
+			printf("output XML (needs to be futher transformed for element\n");
+			printf("attribution with compact_attributes.xsl");
+			printf("\n");
+
 			printf("n/a\n");
 			exit(0);
 		}
-		if( ! strcmp(argv[1],"-v") 
+		if( ! strcmp(argv[1],"-v")
 			|| ! strcmp(argv[1],"--version"))
 		{
 			printf("%.2f\n",version);
@@ -636,7 +649,6 @@ MAIN LOOP
 	//string line;
 	while (getline(cin, LINE))
 	{
-
 		STAT_PREV_=STAT_;
 		STAT_=0;
 		MULTILINE_PREV_=MULTILINE_;
@@ -652,32 +664,35 @@ MAIN LOOP
 
 		if(! handle_xml_comment()){continue;}
 
-		if(! find_root()){continue;}
+		if(STARTING_==1)
+		{
+			if(! find_root()){continue;}
+		}
 
-		if(! handle_include()){continue;}
+		if(STARTING_==0)
+	        {
+			if(! handle_include()){continue;}
 
-		if(! handle_command()){continue;}
+			if(! handle_command()){continue;}
 
-		//
-		handle_multiline_text();
+//			if(! handle_multiline_text()){continue;}
+			handle_multiline_text();
 
-		if(! handle_children()){continue;}
+			if(! handle_children()){continue;}
 
-		if(! handle_leaf()){continue;}
+			if(! handle_leaf()){continue;}
 
-		if(! handle_nav_up()){continue;}
+			if(! handle_nav_up()){continue;}
 
-		if(! handle_nav_element()){continue;}
+			if(! handle_nav_element()){continue;}
 
-		if(! handle_nav_root()){continue;}
+			if(! handle_nav_root()){continue;}
 
-		if(! handle_nav_close()){continue;}
+			if(! handle_nav_close()){continue;}
 
-		if(! handle_attribute()){continue;}
-
-		//cout << line << endl;
+			if(! handle_attribute()){continue;}
+		}
 
 	} //end while read line from file
-
 	return 0;
 }//end main
