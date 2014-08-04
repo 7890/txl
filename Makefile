@@ -17,8 +17,8 @@ all: build
 build: $(SRC)/txlparser.cc $(SRC)/txl2xml.sh $(SRC)/xml2txl.sh $(SRC)/compact_attributes.xsl $(SRC)/xml2txl.xsl
 
 	@echo ""
-	@echo "complinlg txlparser.cc"
-	@echo "----------------------"
+	@echo "complinlg txlparser.cc, txlprep.cc"
+	@echo "----------------------------------"
 	@echo ""
 	@echo "CC        : $(CC)"
 	@echo "CFLAGS    : $(CFLAGS)"
@@ -32,6 +32,8 @@ build: $(SRC)/txlparser.cc $(SRC)/txl2xml.sh $(SRC)/xml2txl.sh $(SRC)/compact_at
 	mkdir -p $(BLD)
 
 	$(CC) -o $(BLD)/txlparser $(SRC)/txlparser.cc $(CFLAGS)
+	$(CC) -o $(BLD)/txlprep $(SRC)/txlprep.cc $(CFLAGS)
+
 	cp $(SRC)/txl2xml.sh $(BLD)/txl2xml
 	cp $(SRC)/xml2txl.sh $(BLD)/xml2txl
 	cp $(SRC)/compact_attributes.xsl $(BLD)/
@@ -58,6 +60,7 @@ install:
 	install -d $(DESTDIR)$(bindir)/
 
 	install -m755 $(BLD)/txlparser $(DESTDIR)$(bindir)/
+	install -m755 $(BLD)/txlprep $(DESTDIR)$(bindir)/
 	install -m755 $(BLD)/txl2xml $(DESTDIR)$(bindir)/
 	install -m755 $(BLD)/xml2txl $(DESTDIR)$(bindir)/
 
@@ -88,6 +91,8 @@ uninstall:
 	@echo ""
 
 	rm -f $(DESTDIR)$(bindir)/txlparser
+	rm -f $(DESTDIR)$(bindir)/txlprep
+
 	rm -f $(DESTDIR)$(bindir)/txl2xml
 	rm -f $(DESTDIR)$(bindir)/xml2txl
 
